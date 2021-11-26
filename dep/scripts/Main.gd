@@ -3,6 +3,7 @@ signal changeDetected
 onready var textNode = $Inner/Rows/GUI_Elems/Margin/Container/Items/RichTextLabel
 var processEnabled:bool = false
 var pos:Vector2
+var thisSession:int = 0
 
 func _ready() -> void:
 	# Anything emitting signal will trigger this.
@@ -15,6 +16,9 @@ func _ready() -> void:
 	# The bg of app by default ain't transparent. This makes it so.
 	get_tree().get_root().transparent_bg = true
 
+	# Current Session counter
+	thisSession = 0
+
 func _process(delta: float) -> void:
 	#If being dragged by BG, negate the position wherever the user is dragging from.
 	if processEnabled:
@@ -23,14 +27,17 @@ func _process(delta: float) -> void:
 func _on_Minus() -> void:
 	if GlobalFile.count > 0:
 		GlobalFile.count -=1
+		thisSession -= 1
 		emit_signal("changeDetected")
 
 func _on_Plus() -> void:
 	GlobalFile.count += 1
+	thisSession += 1
 	emit_signal("changeDetected")
 
 func _on_Reset() -> void:
 	GlobalFile.count = 0
+	thisSession = 0
 	emit_signal("changeDetected")
 
 func _on_quit() -> void:
@@ -39,7 +46,11 @@ func _on_quit() -> void:
 func change():
 	# This originally had BB code effects, but realizing it keeps re-rendering,
 	# I opted to remove it. Now it runs a solid 0% CPU and GPU on idle.
-	textNode.bbcode_text = "[center]"+String(GlobalFile.count)+"[/center]"
+	# 26-11-2021 -- Adding session counter and switching this with string formatting.
+	if thisSession == 0:
+		textNode.bbcode_text = "[center]%s[/center]" % GlobalFile.count
+	else:
+		textNode.bbcode_text = "[center]%s [color=red](%s)[/color][/center]" % [GlobalFile.count, thisSession]
 
 	# I've honestly no idea which is better. One way, it writes to disk every change,
 	# The other would be to call it on quit, but would lose all progress on random crash.
